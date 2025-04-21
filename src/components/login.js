@@ -69,7 +69,7 @@ const LoginPage = () => {
 
     if (!validateForm()) return;
 
-    const baseUrl = "https://your-backend.com/api";
+    const baseUrl = "https://your-backend.com/api/login";
     const url = isAdmin
       ? `${baseUrl}/login`
       : isLogin
