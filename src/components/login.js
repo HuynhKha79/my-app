@@ -109,9 +109,9 @@ const LoginPage = () => {
   if (isAdmin || isLogin) {
     localStorage.setItem("user", JSON.stringify(data.user));
     if (response.data.user.role === 'admin') {
-      navigate("/Home")      // ✅ chuyển trang admin
+      navigate("/home")      // ✅ chuyển trang admin
     } else {
-      navigate("/StudentHome")  // ✅ chuyển trang student
+      navigate("/student-home")  // ✅ chuyển trang student
     }
   } else {
     alert("Tạo tài khoản thành công!");
