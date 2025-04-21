@@ -1,6 +1,8 @@
 // Login.js
 import React, { useState } from "react";
 import "./login.css";
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,13 +18,12 @@ const LoginPage = () => {
     ngaysinh: "",
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
   const validateForm = () => {
@@ -59,14 +60,18 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
+    setLoading(true);
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
-    const url = isAdmin
-      ? "http://localhost/Home_React_baoanh/backend/login.php"
-      : isLogin
-        ? "http://localhost/Home_React_baoanh/backend/login.php"
-        : "http://localhost/Home_React_baoanh/backend/register.php";
+    const baseUrl = process.env.REACT_APP_API_URL;
+    const url = isAdmin || isLogin
+      ? `${baseUrl}/login`
+      : `${baseUrl}/register`;
 
     const payload = {
       email: formData.email,
@@ -84,38 +89,43 @@ const LoginPage = () => {
     };
 
     try {
-      console.log("Sending to backend:", payload);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const response = await axios.post(url, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        withCredentials: true,
+        timeout: 10000
       });
 
-      const data = await response.json();
-      console.log("Response from backend:", data);
+      const data = response.data;
 
       if (data.success) {
-        if (isAdmin || isLogin) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-          if (data.user.role === "student") {
-            window.location.href = "/student/home";
-          } else if (data.user.role === "admin") {
-            window.location.href = "/home";
-          } else {
-            alert("Vai trò không hợp lệ!");
-          }
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // Chuyển hướng khi thành công
+        if (data.user.role === "student") {
+          navigate("/student/home");
+        } else if (data.user.role === "admin") {
+          navigate("/home");
         } else {
-          alert("Tạo tài khoản thành công!");
-          setIsLogin(true);
+          alert("Vai trò không hợp lệ!");
         }
       } else {
-        alert(data.message); // Hiển thị thông báo lỗi từ backend
+        alert(data.message || "Đăng nhập thất bại");
         setErrors({ general: data.message });
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Đã xảy ra lỗi. Vui lòng thử lại sau.");
-      setErrors({ general: "Đã xảy ra lỗi. Vui lòng thử lại sau." });
+      if (error.response) {
+        setErrors({ general: error.response.data.message || "Đăng nhập thất bại" });
+      } else if (error.request) {
+        alert("Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.");
+      } else {
+        alert("Có lỗi xảy ra. Vui lòng thử lại sau.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -158,6 +168,7 @@ const LoginPage = () => {
         <h1 className="form-title">
           {isAdmin ? "Login Admin" : isLogin ? "Sign In" : "Sign Up"}
         </h1>
+        {errors.general && <div className="error-message">{errors.general}</div>}
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <input
@@ -261,8 +272,8 @@ const LoginPage = () => {
               </a>
             </div>
           )}
-          <button type="submit" className="submit-button">
-            {isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
+          <button type="submit" className="submit-button" disabled={loading}>
+            {loading ? 'Đang xử lý...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>
         {!isAdmin && (
