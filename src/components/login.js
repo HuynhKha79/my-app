@@ -19,11 +19,15 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
   };
 
   const validateForm = () => {
@@ -63,15 +67,14 @@ const LoginPage = () => {
     setErrors({});
     setLoading(true);
 
-    if (!validateForm()) {
-      setLoading(false);
-      return;
-    }
+    if (!validateForm()) return;
 
-    const baseUrl = process.env.REACT_APP_API_URL;
-    const url = isAdmin || isLogin
+    const baseUrl = "https://your-backend.com/api";
+    const url = isAdmin
       ? `${baseUrl}/login`
-      : `${baseUrl}/register`;
+      : isLogin
+        ? `${baseUrl}/login`
+        : `${baseUrl}/register`;
 
     const payload = {
       email: formData.email,
@@ -89,29 +92,35 @@ const LoginPage = () => {
     };
 
     try {
+      console.log("Sending to backend:", payload);
       const response = await axios.post(url, payload, {
+        timeout: 10000, // 10 giây timeout
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        withCredentials: true,
-        timeout: 10000
+        credentials: "include",
       });
 
       const data = response.data;
+      console.log("Response from backend:", data);
 
       if (data.success) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // Chuyển hướng khi thành công
-        if (data.user.role === "student") {
-          navigate("/student/home");
-        } else if (data.user.role === "admin") {
-          navigate("/home");
+        if (isAdmin || isLogin) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          if (data.user.role === "student") {
+            navigate("/student/dashboard");
+          } else if (data.user.role === "admin") {
+            navigate("/admin/dashboard");
+          } else {
+            alert("Vai trò không hợp lệ!");
+          }
         } else {
-          alert("Vai trò không hợp lệ!");
+          alert("Tạo tài khoản thành công!");
+          setIsLogin(true);
         }
       } else {
+        console.error("Login error:", data.message);
         alert(data.message || "Đăng nhập thất bại");
         setErrors({ general: data.message });
       }
@@ -158,6 +167,50 @@ const LoginPage = () => {
       lop: "",
       ngaysinh: "",
     });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/login`,
+        { email: formData.email, password: formData.password, role: isAdmin ? "admin" : "student" },
+        {
+          withCredentials: true,
+          timeout: 10000
+        }
+      );
+
+      console.log('Response from backend:', response.data);
+
+      if (response.data.success) {
+        // Lưu thông tin user vào localStorage
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Chuyển hướng dựa trên role
+        if (response.data.user.role === 'admin') {
+          window.location.href = '/home';  // Sử dụng window.location.href thay vì navigate
+        } else {
+          window.location.href = '/student-home';
+        }
+      } else {
+        setError(response.data.message || "Đăng nhập thất bại");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.response) {
+        setError(error.response.data.message || "Đăng nhập thất bại");
+      } else if (error.request) {
+        setError("Không thể kết nối đến máy chủ");
+      } else {
+        setError("Có lỗi xảy ra khi đăng nhập");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -273,7 +326,7 @@ const LoginPage = () => {
             </div>
           )}
           <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? 'Đang xử lý...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
+            {loading ? 'Đang đăng nhập...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>
         {!isAdmin && (
