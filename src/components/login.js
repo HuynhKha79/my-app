@@ -106,18 +106,19 @@ const LoginPage = () => {
       console.log("Response from backend:", data);
 
       if (data.success) {
-        if (isAdmin || isLogin) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-          if (response.data.user.role === 'admin') {
-            window.location.href = '/Home';
-          } else {
-            window.location.href = '/StudentHome';
-          }
-          
-        } else {
-          alert("Tạo tài khoản thành công!");
-          setIsLogin(true);
-        }
+  if (isAdmin || isLogin) {
+    localStorage.setItem("user", JSON.stringify(data.user));
+    if (response.data.user.role === 'admin') {
+      window.location.href = '/Home';         // ✅ chuyển trang admin
+    } else {
+      window.location.href = '/StudentHome';  // ✅ chuyển trang student
+    }
+  } else {
+    alert("Tạo tài khoản thành công!");
+    setIsLogin(true);
+  }
+
+
       } else {
         console.error("Login error:", data.message);
         alert(data.message || "Đăng nhập thất bại");
