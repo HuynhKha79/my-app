@@ -108,20 +108,21 @@ const LoginPage = () => {
       if (data.success) {
         if (isAdmin || isLogin) {
           localStorage.setItem("user", JSON.stringify(data.user));
-      
-          // 👉 Thêm đoạn này vào đây:
-          if (data.user.role === 'admin') {
-            window.location.href = 'Home.js';
+          if (response.data.user.role === 'admin') {
+            window.location.href = '/Home';
           } else {
-            window.location.href = 'StudentHome.js';
+            window.location.href = '/StudentHome';
           }
-      
+          
         } else {
           alert("Tạo tài khoản thành công!");
           setIsLogin(true);
         }
+      } else {
+        console.error("Login error:", data.message);
+        alert(data.message || "Đăng nhập thất bại");
+        setErrors({ general: data.message });
       }
-      
     } catch (error) {
       console.error("Error:", error);
       if (error.response) {
