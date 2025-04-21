@@ -109,9 +109,9 @@ const LoginPage = () => {
         if (isAdmin || isLogin) {
           localStorage.setItem("user", JSON.stringify(data.user));
           if (data.user.role === "student") {
-            navigate("/student/dashboard");
+            navigate("/StudentHome");  // Dành cho student
           } else if (data.user.role === "admin") {
-            navigate("/admin/dashboard");
+            navigate("/Home");  // Dành cho admin
           } else {
             alert("Vai trò không hợp lệ!");
           }
@@ -119,6 +119,8 @@ const LoginPage = () => {
           alert("Tạo tài khoản thành công!");
           setIsLogin(true);
         }
+      
+      
       } else {
         console.error("Login error:", data.message);
         alert(data.message || "Đăng nhập thất bại");
