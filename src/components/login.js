@@ -103,12 +103,13 @@ const LoginPage = () => {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         if (data.user.role === "student") {
-          console.log("Navigating to /StudentHome");
-          navigate("/StudentHome");
+          console.log("Navigating to /student/home");
+          navigate("/student/home");
         } else if (data.user.role === "admin") {
-          console.log("Navigating to /Home");
-          navigate("/Home");
-        } else {
+          console.log("Navigating to /home");
+          navigate("/home");
+        }
+         else {
           alert("Vai trò không hợp lệ!");
         }
       } else {
