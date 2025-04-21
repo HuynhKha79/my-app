@@ -111,9 +111,9 @@ const LoginPage = () => {
       
           // 👉 Thêm đoạn này vào đây:
           if (data.user.role === 'admin') {
-            window.location.href = '/Home.js';
+            window.location.href = 'Home.js';
           } else {
-            window.location.href = '/StudentHome.js';
+            window.location.href = 'StudentHome.js';
           }
       
         } else {
