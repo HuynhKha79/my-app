@@ -86,18 +86,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/home" element={
-  <ProtectedRoute allowedRole="admin">
-    <AdminHome />
-  </ProtectedRoute>
-} />
-
-<Route path="/student-home" element={
-  <ProtectedRoute allowedRole="student">
-    <StudentHome />
-  </ProtectedRoute>
-} />
-
           <Route
             path="/group-management"
             element={
