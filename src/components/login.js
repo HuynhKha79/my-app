@@ -1,7 +1,8 @@
+// Login.js
 import React, { useState } from "react";
 import "./login.css";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,13 +19,15 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const baseUrl = process.env.REACT_APP_API_URL || "https://your-backend.com/api";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
   };
 
   const validateForm = () => {
@@ -62,8 +65,11 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
+    setLoading(true);
+
     if (!validateForm()) return;
 
+    const baseUrl = process.env.REACT_APP_API_URL;
     const url = isAdmin
       ? `${baseUrl}/login`
       : isLogin
@@ -77,39 +83,55 @@ const LoginPage = () => {
       ...(isAdmin || isLogin
         ? {}
         : {
-            mssv: formData.mssv,
-            hoten: formData.hoten,
-            khoa: formData.khoa,
-            lop: formData.lop,
-            ngaysinh: formData.ngaysinh,
-          }),
+          mssv: formData.mssv,
+          hoten: formData.hoten,
+          khoa: formData.khoa,
+          lop: formData.lop,
+          ngaysinh: formData.ngaysinh,
+        }),
     };
 
     try {
-      setLoading(true);
+      console.log("Sending to backend:", payload);
       const response = await axios.post(url, payload, {
+        timeout: 10000, // 10 giây timeout
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json"
         },
-        withCredentials: true,
+        credentials: "include",
       });
 
       const data = response.data;
+      console.log("Response from backend:", data);
 
       if (data.success) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-        const redirectUrl =
-          data.user.role === "admin" ? "/admin/dashboard" : "/student/dashboard";
-        navigate(redirectUrl);
+        if (isAdmin || isLogin) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          if (data.user.role === "student") {
+            navigate("/student/dashboard");
+          } else if (data.user.role === "admin") {
+            navigate("/admin/dashboard");
+          } else {
+            alert("Vai trò không hợp lệ!");
+          }
+        } else {
+          alert("Tạo tài khoản thành công!");
+          setIsLogin(true);
+        }
       } else {
-        alert(data.message || "Thao tác thất bại");
+        console.error("Login error:", data.message);
+        alert(data.message || "Đăng nhập thất bại");
+        setErrors({ general: data.message });
       }
     } catch (error) {
-      console.error("Lỗi:", error);
+      console.error("Error:", error);
       if (error.response) {
-        alert(error.response.data.message || "Lỗi server.");
+        setErrors({ general: error.response.data.message || "Đăng nhập thất bại" });
+      } else if (error.request) {
+        alert("Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.");
       } else {
-        alert("Không thể kết nối đến server.");
+        alert("Có lỗi xảy ra. Vui lòng thử lại sau.");
       }
     } finally {
       setLoading(false);
@@ -147,8 +169,54 @@ const LoginPage = () => {
     });
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/login`,
+        { email: formData.email, password: formData.password, role: isAdmin ? "admin" : "student" },
+        {
+          withCredentials: true,
+          timeout: 10000
+        }
+      );
+
+      console.log('Response from backend:', response.data);
+
+      if (response.data.success) {
+        // Lưu thông tin user vào localStorage
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Chuyển hướng dựa trên role
+        if (response.data.user.role === 'admin') {
+          window.location.href = '/home';  // Sử dụng window.location.href thay vì navigate
+        } else {
+          window.location.href = '/student-home';
+        }
+      } else {
+        setError(response.data.message || "Đăng nhập thất bại");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.response) {
+        setError(error.response.data.message || "Đăng nhập thất bại");
+      } else if (error.request) {
+        setError("Không thể kết nối đến máy chủ");
+      } else {
+        setError("Có lỗi xảy ra khi đăng nhập");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-container">
+      <div className="shape-top-left"></div>
+      <div className="shape-bottom-right"></div>
       <div className="form-container">
         <h1 className="form-title">
           {isAdmin ? "Login Admin" : isLogin ? "Sign In" : "Sign Up"}
@@ -159,7 +227,7 @@ const LoginPage = () => {
             <input
               type="text"
               name="email"
-              placeholder={isAdmin ? "Username" : "Email"}
+              placeholder={isAdmin ? "Username" : "Email Address"}
               value={formData.email}
               onChange={handleChange}
               className="input-field"
@@ -177,14 +245,13 @@ const LoginPage = () => {
             />
             {errors.password && <p className="error-text">{errors.password}</p>}
           </div>
-
           {!isAdmin && !isLogin && (
             <>
               <div className="input-group">
                 <input
                   type="password"
                   name="confirmPassword"
-                  placeholder="Confirm Password"
+                  placeholder="Re-enter password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="input-field"
@@ -193,19 +260,50 @@ const LoginPage = () => {
                   <p className="error-text">{errors.confirmPassword}</p>
                 )}
               </div>
-              {["mssv", "hoten", "khoa", "lop"].map((field) => (
-                <div className="input-group" key={field}>
-                  <input
-                    type="text"
-                    name={field}
-                    placeholder={field.toUpperCase()}
-                    value={formData[field]}
-                    onChange={handleChange}
-                    className="input-field"
-                  />
-                  {errors[field] && <p className="error-text">{errors[field]}</p>}
-                </div>
-              ))}
+              <div className="input-group">
+                <input
+                  type="text"
+                  name="mssv"
+                  placeholder="MSSV"
+                  value={formData.mssv}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+                {errors.mssv && <p className="error-text">{errors.mssv}</p>}
+              </div>
+              <div className="input-group">
+                <input
+                  type="text"
+                  name="hoten"
+                  placeholder="Họ tên"
+                  value={formData.hoten}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+                {errors.hoten && <p className="error-text">{errors.hoten}</p>}
+              </div>
+              <div className="input-group">
+                <input
+                  type="text"
+                  name="khoa"
+                  placeholder="Khoa"
+                  value={formData.khoa}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+                {errors.khoa && <p className="error-text">{errors.khoa}</p>}
+              </div>
+              <div className="input-group">
+                <input
+                  type="text"
+                  name="lop"
+                  placeholder="Lớp"
+                  value={formData.lop}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+                {errors.lop && <p className="error-text">{errors.lop}</p>}
+              </div>
               <div className="input-group">
                 <input
                   type="date"
@@ -220,31 +318,27 @@ const LoginPage = () => {
               </div>
             </>
           )}
-
           {isAdmin && (
             <div className="toggle-text">
               <a href="#" className="toggle-link">
-                Forgot password?
+                Forget my password
               </a>
             </div>
           )}
-
           <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? "Đang xử lý..." : isAdmin ? "Login" : isLogin ? "Sign In" : "Sign Up"}
+            {loading ? 'Đang đăng nhập...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>
-
         {!isAdmin && (
           <div className="toggle-text">
             <p>
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              {isLogin ? "Don't have an account? " : "Already Have An Account? "}
               <button onClick={toggleForm} className="toggle-link">
                 {isLogin ? "Sign Up" : "Sign In"}
               </button>
             </p>
           </div>
         )}
-
         <div className="toggle-text">
           <button
             onClick={() => toggleRole("student")}
