@@ -25,11 +25,6 @@ import StudentAttendance from "./components/StudentAttendance";
 import StudentSchedule from "./components/StudentSchedule";
 import StudentGroup from "./components/StudentGroup";
 import axios from 'axios';
-import { Routes, Route } from 'react-router-dom';
-import LoginPage from './Login';
-import Home from './pages/AdminHome'; // ví dụ
-import StudentHome from './pages/StudentHome'; // ví dụ
-
 // Cấu hình axios mặc định
 axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 axios.defaults.withCredentials = true;
