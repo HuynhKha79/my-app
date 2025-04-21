@@ -30,16 +30,6 @@ import LoginPage from './Login';
 import Home from './pages/AdminHome'; // ví dụ
 import StudentHome from './pages/StudentHome'; // ví dụ
 
-function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<LoginPage />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/student/home" element={<StudentHome />} />
-    </Routes>
-  );
-}
-
 // Cấu hình axios mặc định
 axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 axios.defaults.withCredentials = true;
