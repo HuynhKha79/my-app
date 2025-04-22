@@ -19,6 +19,7 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -66,10 +67,7 @@ const LoginPage = () => {
     setErrors({});
     setLoading(true);
 
-    if (!validateForm()) {
-      setLoading(false);
-      return;
-    }
+    if (!validateForm()) return;
 
     const baseUrl = process.env.REACT_APP_API_URL;
     const url = isAdmin
@@ -94,27 +92,35 @@ const LoginPage = () => {
     };
 
     try {
+      console.log("Sending to backend:", payload);
       const response = await axios.post(url, payload, {
-        timeout: 10000,
+        timeout: 10000, // 10 giây timeout
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        withCredentials: true,
+        credentials: "include",
       });
 
       const data = response.data;
-      if (data.success) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("Response from backend:", data);
 
-        if (data.user.role === "student") {
-          window.location.href = "/student/dashboard";
-        } else if (data.user.role === "admin") {
-          window.location.href = "/admin/dashboard";
+      if (data.success) {
+        if (isAdmin || isLogin) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          if (data.user.role === "student") {
+            navigate("/student/dashboard");
+          } else if (data.user.role === "admin") {
+            navigate("/admin/dashboard");
+          } else {
+            alert("Vai trò không hợp lệ!");
+          }
         } else {
-          alert("Vai trò không hợp lệ!");
+          alert("Tạo tài khoản thành công!");
+          setIsLogin(true);
         }
       } else {
+        console.error("Login error:", data.message);
         alert(data.message || "Đăng nhập thất bại");
         setErrors({ general: data.message });
       }
@@ -123,7 +129,7 @@ const LoginPage = () => {
       if (error.response) {
         setErrors({ general: error.response.data.message || "Đăng nhập thất bại" });
       } else if (error.request) {
-        alert("Không thể kết nối đến server.");
+        alert("Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.");
       } else {
         alert("Có lỗi xảy ra. Vui lòng thử lại sau.");
       }
@@ -161,6 +167,50 @@ const LoginPage = () => {
       lop: "",
       ngaysinh: "",
     });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/login`,
+        { email: formData.email, password: formData.password, role: isAdmin ? "admin" : "student" },
+        {
+          withCredentials: true,
+          timeout: 10000
+        }
+      );
+
+      console.log('Response from backend:', response.data);
+
+      if (response.data.success) {
+        // Lưu thông tin user vào localStorage
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Chuyển hướng dựa trên role
+        if (response.data.user.role === 'admin') {
+          window.location.href = '/home';  // Sử dụng window.location.href thay vì navigate
+        } else {
+          window.location.href = '/student-home';
+        }
+      } else {
+        setError(response.data.message || "Đăng nhập thất bại");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.response) {
+        setError(error.response.data.message || "Đăng nhập thất bại");
+      } else if (error.request) {
+        setError("Không thể kết nối đến máy chủ");
+      } else {
+        setError("Có lỗi xảy ra khi đăng nhập");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -270,17 +320,19 @@ const LoginPage = () => {
           )}
           {isAdmin && (
             <div className="toggle-text">
-              <a href="#" className="toggle-link">Forget my password</a>
+              <a href="#" className="toggle-link">
+                Forget my password
+              </a>
             </div>
           )}
           <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? 'Đang xử lý...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
+            {loading ? 'Đang đăng nhập...' : isAdmin ? "Login" : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>
         {!isAdmin && (
           <div className="toggle-text">
             <p>
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              {isLogin ? "Don't have an account? " : "Already Have An Account? "}
               <button onClick={toggleForm} className="toggle-link">
                 {isLogin ? "Sign Up" : "Sign In"}
               </button>
